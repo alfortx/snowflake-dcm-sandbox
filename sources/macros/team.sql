@@ -5,12 +5,12 @@
   ※ マクロファイルにはマクロ以外を書けないため、説明は Jinja コメントで書く
 #}
 {% macro create_team(team) %}
-{% set wh = prefix ~ '_' ~ team ~ '_WH' %}
-{% set db = prefix ~ '_' ~ team ~ '_ANALYTICS_DB' %}
-{% set fr_operate = prefix ~ '_FR_WH_' ~ team ~ '_OPERATE' %}
-{% set fr_use = prefix ~ '_FR_WH_' ~ team ~ '_USE' %}
-{% set developer = prefix ~ '_' ~ team ~ '_DEVELOPER_ROLE' %}
-{% set viewer = prefix ~ '_' ~ team ~ '_VIEWER_ROLE' %}
+{% set wh = 'DCM_SBX_' ~ team ~ '_WH' ~ env_suffix %}
+{% set db = 'DCM_SBX_' ~ team ~ '_ANALYTICS_DB' ~ env_suffix %}
+{% set fr_operate = 'DCM_SBX_FR_WH_' ~ team ~ '_OPERATE' ~ env_suffix %}
+{% set fr_use = 'DCM_SBX_FR_WH_' ~ team ~ '_USE' ~ env_suffix %}
+{% set developer = 'DCM_SBX_' ~ team ~ '_DEVELOPER_ROLE' ~ env_suffix %}
+{% set viewer = 'DCM_SBX_' ~ team ~ '_VIEWER_ROLE' ~ env_suffix %}
 
 -- ---- ウェアハウス ----------------------------------------------------------
 define warehouse {{wh}}
@@ -55,12 +55,12 @@ define role {{viewer}}    comment = '{{team}} の閲覧者（ANALYTICS / RAW 読
 
 grant database role {{db}}.SILVER_WRITE                to role {{developer}};
 grant database role {{db}}.GOLD_WRITE                  to role {{developer}};
-grant database role {{prefix}}_RAW_DB.COVID19_READ     to role {{developer}};
+grant database role DCM_SBX_RAW_DB{{env_suffix}}.COVID19_READ     to role {{developer}};
 grant role {{fr_operate}}                              to role {{developer}};
 
 grant database role {{db}}.SILVER_READ                 to role {{viewer}};
 grant database role {{db}}.GOLD_READ                   to role {{viewer}};
-grant database role {{prefix}}_RAW_DB.COVID19_READ     to role {{viewer}};
+grant database role DCM_SBX_RAW_DB{{env_suffix}}.COVID19_READ     to role {{viewer}};
 grant role {{fr_use}}                                  to role {{viewer}};
 
 grant role {{developer}} to role SYSADMIN;

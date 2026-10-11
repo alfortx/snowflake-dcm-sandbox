@@ -3,13 +3,13 @@
 -- データはロードしない。外部テーブルは DCM 非対応のため、ステージを直接 SELECT するビューで代替する
 -- =============================================================================
 
-define database {{prefix}}_RAW_DB
+define database DCM_SBX_RAW_DB{{env_suffix}}
     comment = 'DCM Sandbox: COVID-19 Data Lake の Raw データ参照用';
 
-define schema {{prefix}}_RAW_DB.COVID19
+define schema DCM_SBX_RAW_DB{{env_suffix}}.COVID19
     comment = 'COVID-19 時系列データ（公開 S3 を直接参照）';
 
-define file format {{prefix}}_RAW_DB.COVID19.CSV_FORMAT
+define file format DCM_SBX_RAW_DB{{env_suffix}}.COVID19.CSV_FORMAT
     type = CSV
     skip_header = 1
     field_optionally_enclosed_by = '"'
@@ -19,25 +19,25 @@ define file format {{prefix}}_RAW_DB.COVID19.CSV_FORMAT
 -- -----------------------------------------------------------------------------
 -- 外部ステージ（公開バケットのため STORAGE_INTEGRATION / CREDENTIALS なし）
 -- -----------------------------------------------------------------------------
-define stage {{prefix}}_RAW_DB.COVID19.COVID19_S3_STAGE
+define stage DCM_SBX_RAW_DB{{env_suffix}}.COVID19.COVID19_S3_STAGE
     url = 's3://covid19-lake/enigma-jhu-timeseries/csv/'
-    file_format = (format_name = '{{prefix}}_RAW_DB.COVID19.CSV_FORMAT')
+    file_format = (format_name = 'DCM_SBX_RAW_DB{{env_suffix}}.COVID19.CSV_FORMAT')
     comment = 'JHU COVID-19 timeseries';
 
-define stage {{prefix}}_RAW_DB.COVID19.COVID19_WORLD_TESTING_STAGE
+define stage DCM_SBX_RAW_DB{{env_suffix}}.COVID19.COVID19_WORLD_TESTING_STAGE
     url = 's3://covid19-lake/rearc-covid-19-world-cases-deaths-testing/csv/'
-    file_format = (format_name = '{{prefix}}_RAW_DB.COVID19.CSV_FORMAT')
+    file_format = (format_name = 'DCM_SBX_RAW_DB{{env_suffix}}.COVID19.CSV_FORMAT')
     comment = 'COVID-19 world cases, deaths, testing, vaccination';
 
-define stage {{prefix}}_RAW_DB.COVID19.COVID19_NYT_USA_STAGE
+define stage DCM_SBX_RAW_DB{{env_suffix}}.COVID19.COVID19_NYT_USA_STAGE
     url = 's3://covid19-lake/rearc-covid-19-nyt-data-in-usa/csv/us-states/'
-    file_format = (format_name = '{{prefix}}_RAW_DB.COVID19.CSV_FORMAT')
+    file_format = (format_name = 'DCM_SBX_RAW_DB{{env_suffix}}.COVID19.CSV_FORMAT')
     comment = 'NYTimes US state-level COVID-19 (2020-01 to 2022-06)';
 
 -- -----------------------------------------------------------------------------
 -- ビュー（外部テーブルの代替。$N = CSV の N 列目）
 -- -----------------------------------------------------------------------------
-define view {{prefix}}_RAW_DB.COVID19.JHU_TIMESERIES
+define view DCM_SBX_RAW_DB{{env_suffix}}.COVID19.JHU_TIMESERIES
     comment = 'JHU COVID-19 時系列データ（ステージ直接参照）'
 as
 select
@@ -55,10 +55,10 @@ select
     try_to_number($12::varchar)  as CONFIRMED,
     try_to_number($13::varchar)  as DEATHS,
     try_to_number($14::varchar)  as RECOVERED
-from @{{prefix}}_RAW_DB.COVID19.COVID19_S3_STAGE
-    (file_format => '{{prefix}}_RAW_DB.COVID19.CSV_FORMAT', pattern => '.*[.]csv');
+from @DCM_SBX_RAW_DB{{env_suffix}}.COVID19.COVID19_S3_STAGE
+    (file_format => 'DCM_SBX_RAW_DB{{env_suffix}}.COVID19.CSV_FORMAT', pattern => '.*[.]csv');
 
-define view {{prefix}}_RAW_DB.COVID19.COVID19_WORLD_TESTING
+define view DCM_SBX_RAW_DB{{env_suffix}}.COVID19.COVID19_WORLD_TESTING
     comment = 'COVID-19 world testing, vaccination, hospital data（ステージ直接参照）'
 as
 select
@@ -92,10 +92,10 @@ select
     try_to_double($54::varchar)  as CARDIOVASC_DEATH_RATE,
     try_to_double($60::varchar)  as LIFE_EXPECTANCY,
     try_to_double($61::varchar)  as HUMAN_DEVELOPMENT_INDEX
-from @{{prefix}}_RAW_DB.COVID19.COVID19_WORLD_TESTING_STAGE
-    (file_format => '{{prefix}}_RAW_DB.COVID19.CSV_FORMAT', pattern => '.*[.]csv');
+from @DCM_SBX_RAW_DB{{env_suffix}}.COVID19.COVID19_WORLD_TESTING_STAGE
+    (file_format => 'DCM_SBX_RAW_DB{{env_suffix}}.COVID19.CSV_FORMAT', pattern => '.*[.]csv');
 
-define view {{prefix}}_RAW_DB.COVID19.NYT_USA_STATES
+define view DCM_SBX_RAW_DB{{env_suffix}}.COVID19.NYT_USA_STATES
     comment = 'NYTimes 米国州別 COVID-19 累積データ（ステージ直接参照）'
 as
 select
@@ -104,5 +104,5 @@ select
     try_to_number($3::varchar)   as FIPS,
     try_to_number($4::varchar)   as CASES,
     try_to_number($5::varchar)   as DEATHS
-from @{{prefix}}_RAW_DB.COVID19.COVID19_NYT_USA_STAGE
-    (file_format => '{{prefix}}_RAW_DB.COVID19.CSV_FORMAT', pattern => '.*[.]csv');
+from @DCM_SBX_RAW_DB{{env_suffix}}.COVID19.COVID19_NYT_USA_STAGE
+    (file_format => 'DCM_SBX_RAW_DB{{env_suffix}}.COVID19.CSV_FORMAT', pattern => '.*[.]csv');
