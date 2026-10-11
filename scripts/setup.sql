@@ -26,7 +26,7 @@ GRANT ROLE FR_WH_SANDBOX_USE TO ROLE DCM_SBX_ADMIN_ROLE;
 -- -----------------------------------------------------------------------------
 CREATE API INTEGRATION IF NOT EXISTS DCM_SBX_GIT_API_INTEGRATION
     API_PROVIDER = git_https_api
-    API_ALLOWED_PREFIXES = ('https://github.com/alfortx/snowflake-dcm-sandbox')
+    API_ALLOWED_PREFIXES = ('https://github.com/alfortx/snowflake-dcm-sandbox.git')  -- 末尾 .git まで含めないと ORIGIN と一致しない
     ENABLED = TRUE
     COMMENT = 'DCM Sandbox: DCM プロジェクトのソース（公開 GitHub リポジトリ）を取得するための Git 連携';
 GRANT USAGE ON INTEGRATION DCM_SBX_GIT_API_INTEGRATION TO ROLE SYSADMIN;
