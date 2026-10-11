@@ -1,0 +1,26 @@
+manifest_version: 2
+type: DCM_PROJECT
+default_target: DCM_SBX_DEV
+
+targets:
+  DCM_SBX_DEV:
+    # SQL（EXECUTE DCM PROJECT ... USING CONFIGURATION DEV）での実行では参照されない。
+    # Snowflake CLI（snow dcm）で使う場合は自分のアカウント識別子に書き換える。
+    account_identifier: MYORG-MYACCOUNT
+    project_name: DCM_SBX_ADMIN_DB.PROJECTS.DCM_SBX_PROJECT
+    project_owner: DCM_SBX_ADMIN_ROLE
+    templating_config: DEV
+
+templating:
+  defaults:
+    prefix: "DCM_SBX"
+    wh_size: "X-SMALL"
+    wh_auto_suspend: 60
+    wh_statement_timeout: 180
+  configurations:
+    DEV:
+      # チームごとに WH / ANALYTICS DB / ロール一式を展開する（sources/macros/team.sql）
+      teams:
+        - "T1"
+        - "T2"
+        - "T3"
