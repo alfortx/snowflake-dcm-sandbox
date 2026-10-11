@@ -95,3 +95,5 @@ USE ROLE ACCOUNTADMIN;
 -- env => 'DEV' / 'PRD' でその環境だけ、'ALL' で両環境 + DCM 管理ロールを削除
 EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts/cleanup.sql' USING (env => 'ALL');
 ```
+
+> `env => 'DEV'` などで片方を削除済みの状態で `'ALL'` を流すと、存在しないプロジェクトへの PURGE でエラーになります。`scripts/setup.sql` を再実行してから `'ALL'` を流してください。
