@@ -69,7 +69,7 @@ sources/definitions/teams.sql   # teams をループして create_team() を呼�
 sources/macros/team.sql         # create_team(team): 1 チーム分の定義
 scripts/setup.sql               # 事前準備（ACCOUNTADMIN）
 scripts/plan.sql / deploy.sql   # PLAN / DEPLOY（USING (env => 'DEV' | 'PRD')）
-scripts/cleanup.sql             # PURGE と後片付け（env => 'DEV' | 'PRD' | 'ALL'。Git 統合は残す）
+scripts/cleanup.sql             # PURGE と後片付け（env => 'DEV' | 'PRD' | 'ALL'。ALL は Git 統合まで削除）
 ```
 
 ## 実行方法
@@ -92,7 +92,7 @@ EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts
 
 -- 3. クリーンナップ
 USE ROLE ACCOUNTADMIN;
--- env => 'DEV' / 'PRD' でその環境だけ、'ALL' で両環境 + DCM 管理ロールを削除
+-- env => 'DEV' / 'PRD' でその環境だけ、'ALL' で両環境 + DCM 管理ロール + Git 統合 + DCM_SBX_ADMIN_DB を削除（setup 前の状態に戻る）
 EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts/cleanup.sql' USING (env => 'ALL');
 ```
 

@@ -2,8 +2,8 @@
 -- =============================================================================
 -- クリーンナップ
 --   env => 'DEV' / 'PRD' : その環境の DCM 管理オブジェクトを PURGE し、プロジェクトを削除する
---   env => 'ALL'         : DEV・PRD 両方を上記のとおり削除し、DCM 管理ロール等も削除する
---   Git 統合（API Integration / DCM_SBX_ADMIN_DB.GIT のリポジトリ）は残す
+--   env => 'ALL'         : DEV・PRD 両方を上記のとおり削除し、DCM 管理ロール・Git 統合・DCM_SBX_ADMIN_DB も削除する
+--                          （setup.sql 実行前の状態に戻る）
 --   実行: ACCOUNTADMIN
 --     EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts/cleanup.sql'
 --       USING (env => 'ALL');
@@ -17,12 +17,9 @@ DROP DCM PROJECT IF EXISTS DCM_SBX_ADMIN_DB.PROJECTS.DCM_SBX_PROJECT_{{ e }};
 {% endfor %}
 
 {% if env == 'ALL' %}
--- DCM 管理ロールとプロジェクト置き場を削除する
-DROP SCHEMA IF EXISTS DCM_SBX_ADMIN_DB.PROJECTS;
-DROP DATABASE ROLE IF EXISTS DCM_SBX_ADMIN_DB.DCM_ADMIN;
+-- DCM 管理ロール、Git リポジトリ・プロジェクトの置き場（DB）、Git 統合を削除する
+-- （このスクリプト自体は実行開始時に読み込み済みのため、リポジトリを含む DB を削除しても最後まで実行される）
 DROP ROLE IF EXISTS DCM_SBX_ADMIN_ROLE;
-
--- Git 統合まで完全に削除する場合（通常は実行しない）
--- DROP DATABASE IF EXISTS DCM_SBX_ADMIN_DB;
--- DROP INTEGRATION IF EXISTS DCM_SBX_GIT_API_INTEGRATION;
+DROP DATABASE IF EXISTS DCM_SBX_ADMIN_DB;
+DROP INTEGRATION IF EXISTS DCM_SBX_GIT_API_INTEGRATION;
 {% endif %}
