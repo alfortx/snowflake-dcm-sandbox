@@ -75,22 +75,61 @@ scripts/cleanup.sql             # PURGE と後片付け（env => 'DEV' | 'PRD' |
 ## 実行方法
 
 前提: アカウントで `FEATURE_RBAC_INHERITED_GRANTS = 'ENABLED'`、および WH 利用ロール `FR_WH_SANDBOX_USE` が存在すること。
+PLAN / DEPLOY は **CLI（SQL）** と **Snowsight（Git ワークスペース）** のどちらからでも実行できます。セットアップとクリーンナップは SQL のみです。
+
+### 0. セットアップ（共通・ローカルのクローンから）
 
 ```bash
-# 1. セットアップ（ローカルのクローンから）
 snow sql -c <connection> -f scripts/setup.sql
 ```
 
+### A. CLI（SQL）から PLAN → DEPLOY
+
 ```sql
--- 2. PLAN → DEPLOY（Git 上のスクリプトを実行）
 ALTER GIT REPOSITORY DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO FETCH;
 USE ROLE DCM_SBX_ADMIN_ROLE;
 USE WAREHOUSE SANDBOX_WH;
 EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts/plan.sql'   USING (env => 'DEV');
 EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts/deploy.sql' USING (env => 'DEV');
 -- PRD も同様に env => 'PRD'
+```
 
--- 3. クリーンナップ
+### B. Snowsight（Git ワークスペース）から PLAN → DEPLOY
+
+1. ロールを `DCM_SBX_ADMIN_ROLE`、ウェアハウスを `SANDBOX_WH` にする
+2. **Projects » Workspaces » + » From Git repository**
+   - Repository URL: `https://github.com/alfortx/snowflake-dcm-sandbox.git`
+   - API integration: `DCM_SBX_GIT_API_INTEGRATION`
+   - Authentication: **Public repository**（読み取り専用。ワークスペースから push はできない）
+3. ワークスペース上で `manifest.yml` の `account_identifier`（2 か所）を自分のアカウント識別子に書き換えて保存する（commit 不要）
+   - 値は `SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME();` で確認できる
+   - プレースホルダのままだと「このターゲットは別のアカウントを使用しているため、ここで選択できません」となり target を選べない
+4. 画面左下の「下部パネル」アイコンでパネルを開き、target に `DCM_SBX_DEV` か `DCM_SBX_PRD` を選ぶ（緑の表示になること）
+5. 操作を **計画**（Plan）にして ▶ を押す。レンダリング済みの定義が `out/rendered/` に、結果が `out/compile_result.json` に出力される
+6. 操作を **展開**（Deploy）にして ▶ を押す（Deployment alias は任意。デプロイ履歴に記録される）
+7. デプロイ履歴は Catalog » Database Explorer » `DCM_SBX_ADMIN_DB` » `PROJECTS` » DCM project の Deployment History で見られる
+
+> ワークスペースは**個人所有**（ロールではなくユーザーが所有）で、UI からのみ作成できます。クリーンナップの前に、ワークスペースの `⋯` » Delete で削除してください。
+
+### CLI（SQL）と Snowsight の違い
+
+| 観点 | CLI（`EXECUTE DCM PROJECT`） | Snowsight（Git ワークスペース） |
+|---|---|---|
+| 環境の指定 | プロジェクト名と `USING CONFIGURATION DEV` を SQL で明示する | manifest の `targets`（`DCM_SBX_DEV` / `DCM_SBX_PRD`）を選ぶ |
+| `account_identifier` | 参照されない（プレースホルダのままで動く） | 今のアカウントと一致しないと target を選べない |
+| ソース | Git リポジトリステージ `@…/branches/main/`（push 後に `FETCH` が必要） | ワークスペースの live 版 `snow://workspace/…/versions/live` |
+| 未コミットの修正 | 反映されない（push 済みのブランチのみ） | 反映される（保存した時点の内容で実行） |
+| 変数の上書き | `USING CONFIGURATION DEV (var => value)` | 「変数を上書き」トグル |
+| PLAN の結果 | 結果セットに JSON（`changeset`）が返る | `out/` にレンダリング済み定義と `compile_result.json`。変更内容を画面に表示 |
+| 実行ロール | 実行者が `USE ROLE` で選ぶ（プロジェクトのオーナー権限が必要） | 現在のロールで実行。target の `project_owner` がプロジェクトを所有していること |
+| PURGE / DROP | 可能（`cleanup.sql`） | Purge はできない（Catalog からプロジェクトの Drop のみ） |
+| 向いている用途 | スクリプト化・CI | 手動での確認・レビュー |
+
+> 同じ DCM プロジェクトをどちらの経路から操作しても構いません。Snowsight でデプロイした後に CLI から PLAN すると、変更は 0 件になります。
+
+### クリーンナップ（共通・SQL）
+
+```sql
 USE ROLE ACCOUNTADMIN;
 -- env => 'DEV' / 'PRD' でその環境だけ、'ALL' で両環境 + DCM 管理ロール + Git 統合 + DCM_SBX_ADMIN_DB を削除（setup 前の状態に戻る）
 EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts/cleanup.sql' USING (env => 'ALL');
