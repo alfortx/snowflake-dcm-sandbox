@@ -52,7 +52,9 @@ SYSADMIN
 
 | 種類 | 名前 | 目的 |
 |---|---|---|
+| Account parameter | `FEATURE_RBAC_INHERITED_GRANTS = ENABLED` | INHERITED grant の有効化（cleanup では戻さない） |
 | Role | `DCM_SBX_ADMIN_ROLE` | DCM プロジェクトのオーナー（SYSADMIN に継承） |
+| Warehouse | `DCM_SBX_ADMIN_WH` | PLAN / DEPLOY 実行用（X-Small、auto_suspend=60） |
 | API integration | `DCM_SBX_GIT_API_INTEGRATION` | このリポジトリを Snowflake から読む |
 | Database / Schema | `DCM_SBX_ADMIN_DB.GIT` / `.PROJECTS` | Git リポジトリ・DCM プロジェクトの置き場 |
 | Git repository | `DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO` | このリポジトリのクローン |
@@ -74,7 +76,9 @@ scripts/cleanup.sql             # PURGE と後片付け（env => 'DEV' | 'PRD' |
 
 ## 実行方法
 
-前提: アカウントで `FEATURE_RBAC_INHERITED_GRANTS = 'ENABLED'`、および WH 利用ロール `FR_WH_SANDBOX_USE` が存在すること。
+前提: ACCOUNTADMIN を使えるユーザーで実行すること。既存のロールや WH は使いません（必要なものは `setup.sql` がすべて作ります）。
+
+> このリポジトリを fork して使う場合は、`scripts/setup.sql` の `API_ALLOWED_PREFIXES` と `ORIGIN`、Snowsight 手順のリポジトリ URL を自分のリポジトリに書き換えてください。
 PLAN / DEPLOY は **CLI（SQL）** と **Snowsight（Git ワークスペース）** のどちらからでも実行できます。セットアップとクリーンナップは SQL のみです。
 
 ### 0. セットアップ（共通・ローカルのクローンから）
@@ -88,7 +92,7 @@ snow sql -c <connection> -f scripts/setup.sql
 ```sql
 ALTER GIT REPOSITORY DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO FETCH;
 USE ROLE DCM_SBX_ADMIN_ROLE;
-USE WAREHOUSE SANDBOX_WH;
+USE WAREHOUSE DCM_SBX_ADMIN_WH;
 EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts/plan.sql'   USING (env => 'DEV');
 EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts/deploy.sql' USING (env => 'DEV');
 -- PRD も同様に env => 'PRD'
@@ -96,7 +100,7 @@ EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts
 
 ### B. Snowsight（Git ワークスペース）から PLAN → DEPLOY
 
-1. ロールを `DCM_SBX_ADMIN_ROLE`、ウェアハウスを `SANDBOX_WH` にする
+1. ロールを `DCM_SBX_ADMIN_ROLE`、ウェアハウスを `DCM_SBX_ADMIN_WH` にする
 2. **Projects » Workspaces » + » From Git repository**
    - Repository URL: `https://github.com/alfortx/snowflake-dcm-sandbox.git`
    - API integration: `DCM_SBX_GIT_API_INTEGRATION`
@@ -131,7 +135,7 @@ EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts
 
 ```sql
 USE ROLE ACCOUNTADMIN;
--- env => 'DEV' / 'PRD' でその環境だけ、'ALL' で両環境 + DCM 管理ロール + Git 統合 + DCM_SBX_ADMIN_DB を削除（setup 前の状態に戻る）
+-- env => 'DEV' / 'PRD' でその環境だけ、'ALL' で両環境 + DCM 管理ロール + 管理用 WH + Git 統合 + DCM_SBX_ADMIN_DB を削除（アカウント設定以外は setup 前の状態に戻る）
 EXECUTE IMMEDIATE FROM '@DCM_SBX_ADMIN_DB.GIT.DCM_SBX_REPO/branches/main/scripts/cleanup.sql' USING (env => 'ALL');
 ```
 
